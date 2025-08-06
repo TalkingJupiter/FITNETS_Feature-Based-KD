@@ -18,3 +18,4 @@ class HintLoss(nn.Module):
         """
         student_proj = self.regressor(student_feat)
         return F.mse_loss(student_proj, teacher_feat)
+        
