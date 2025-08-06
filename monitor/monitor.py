@@ -3,6 +3,7 @@ import time
 import csv
 import psutil
 from datetime import datetime
+import argparse
 
 class PowerMonitor:
     def __init__(self, gpu_index=0, interval=0.5, outfile="power_log.csv"):
@@ -23,12 +24,13 @@ class PowerMonitor:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.running = False
         pynvml.nvmlShutdown()
-        with open(self.outfile, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=self.logs[0].keys())
-            writer.writeheader()
-            for row in self.logs:
-                writer.writerow(row)
-        print(f"[Monitor] Saved telemetry log to: {self.outfile}")
+        if self.logs:
+            with open(self.outfile, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=self.logs[0].keys())
+                writer.writeheader()
+                for row in self.logs:
+                    writer.writerow(row)
+            print(f"[Monitor] Saved telemetry log to: {self.outfile}")
 
     def log_once(self):
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(self.device)
@@ -54,6 +56,28 @@ class PowerMonitor:
         self.logs.append(record)
 
     def start(self):
-        while self.running:
-            self.log_once()
-            time.sleep(self.interval)
+        print(f"[Monitor] Monitoring GPU {self.gpu_index} every {self.interval}s. Output: {self.outfile}")
+        try:
+            while self.running:
+                self.log_once()
+                time.sleep(self.interval)
+        except KeyboardInterrupt:
+            print("[Monitor] Interrupted by user.")
+
+# ------------------ CLI ENTRY POINT ------------------
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="GPU Power Telemetry Monitor")
+    parser.add_argument("--gpu", type=int, default=0, help="GPU index to monitor")
+    parser.add_argument("--interval", type=float, default=0.5, help="Sampling interval (seconds)")
+    parser.add_argument("--log_path", type=str, default="power_log.csv", help="CSV output path")
+    args = parser.parse_args()
+
+    monitor = PowerMonitor(
+        gpu_index=args.gpu,
+        interval=args.interval,
+        outfile=args.log_path
+    )
+
+    with monitor:
+        monitor.start()
