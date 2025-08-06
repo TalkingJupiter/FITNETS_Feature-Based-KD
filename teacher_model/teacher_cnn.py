@@ -1,0 +1,34 @@
+import torch.nn as nn
+import torch.nn.functional as F
+
+class TeacherCNN(nn.Module):
+    def __init__(self, num_classes=10):
+        super(TeacherCNN, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),     #(B,64,32,32)
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1)    #(B, 128, 32, 32)
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),    #(B, 128, 16, 16)
+
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),      #(B, 256,16,16)
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),    #(B, 256,8,8)
+        )
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(256 * 8 *8, 512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, num_classes)
+        )
+
+    def forward(self, x, return_features=False):
+        features = self.features(x) #intermediate representation
+        logits = self.classifier(features)
+        return (logits, features) if return_features else logits
+
+def get_teacher():
+    return TeacherCNN()
