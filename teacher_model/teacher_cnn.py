@@ -1,34 +1,31 @@
+import torchvision.models as models
 import torch.nn as nn
-import torch.nn.functional as F
 
-class TeacherCNN(nn.Module):
+class ResNetTeacher(nn.Module):
     def __init__(self, num_classes=10):
-        super(TeacherCNN, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),     #(B,64,32,32)
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 128, kernel_size=3, padding=1)    #(B, 128, 32, 32)
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2),    #(B, 128, 16, 16)
-
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),      #(B, 256,16,16)
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2),    #(B, 256,8,8)
-        )
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(256 * 8 *8, 512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, num_classes)
-        )
+        super(ResNetTeacher, self).__init__()
+        base_model = models.resnet34(pretrained=True)
+        base_model.fc = nn.Linear(base_model.fc.in_features, num_classes)
+        self.model = base_model
 
     def forward(self, x, return_features=False):
-        features = self.features(x) #intermediate representation
-        logits = self.classifier(features)
-        return (logits, features) if return_features else logits
+        if return_features:
+            x = self.model.conv1(x)
+            x = self.model.bn1(x)
+            x = self.model.relu(x)
+            x = self.model.maxpool(x)
+
+            x = self.model.layer1(x)
+            feat = self.model.layer2(x)  # <-- you can pick which layer to distill from
+            x = self.model.layer3(feat)
+            x = self.model.layer4(x)
+
+            x = self.model.avgpool(x)
+            x = x.view(x.size(0), -1)
+            logits = self.model.fc(x)
+            return logits, feat
+        else:
+            return self.model(x)
 
 def get_teacher():
-    return TeacherCNN()
+    return ResNetTeacher()

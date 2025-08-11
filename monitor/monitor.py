@@ -15,7 +15,7 @@ class PowerMonitor:
     def __enter__(self):
         pynvml.nvmlInit()
         self.device = pynvml.nvmlDeviceGetHandleByIndex(self.gpu_index)
-        self.gpu_name = pynvml.nvmlDeviceGetName(self.device).decode("utf-8")
+        self.gpu_name = str(pynvml.nvmlDeviceGetName(self.device))
         self.start_time = time.time()
         self.logs = []
         self.running = True
@@ -30,7 +30,7 @@ class PowerMonitor:
                 writer.writeheader()
                 for row in self.logs:
                     writer.writerow(row)
-            print(f"[Monitor] Saved telemetry log to: {self.outfile}")
+            print(f"[Monitor] Saved telemetry log to: {self.outfile}", flush=True)
 
     def log_once(self):
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(self.device)
@@ -54,15 +54,17 @@ class PowerMonitor:
         }
 
         self.logs.append(record)
+        print(record, flush=True)
+
 
     def start(self):
-        print(f"[Monitor] Monitoring GPU {self.gpu_index} every {self.interval}s. Output: {self.outfile}")
+        print(f"[Monitor] Monitoring GPU {self.gpu_index} every {self.interval}s. Output: {self.outfile}", flush=True)
         try:
             while self.running:
                 self.log_once()
                 time.sleep(self.interval)
         except KeyboardInterrupt:
-            print("[Monitor] Interrupted by user.")
+            print("[Monitor] Interrupted by user.", flush=True)
 
 # ------------------ CLI ENTRY POINT ------------------
 
@@ -79,5 +81,11 @@ if __name__ == "__main__":
         outfile=args.log_path
     )
 
-    with monitor:
+    monitor.__enter__()  # manually start
+    try:
         monitor.start()
+    except KeyboardInterrupt:
+        print("[Monitor] Interrupted by user.", flush=True)
+    finally:
+        monitor.__exit__(None, None, None)  # manually shut down and save logs
+

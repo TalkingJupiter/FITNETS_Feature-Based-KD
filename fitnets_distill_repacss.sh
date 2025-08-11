@@ -38,7 +38,7 @@ MONITOR_JSON="${OUTPUT_DIR}/telemetry_${JOB_TS}_${RUN_LABEL}.jsonl"
 MONITOR_LOG="${OUTPUT_DIR}/monitor_stdout_${JOB_TS}_${RUN_LABEL}.log"
 
 echo "[$(date)] Starting telemetry monitor..."
-nohup python monitor/monitor.py \
+python monitor/monitor.py \
   --gpu ${GPU_INDEX} \
   --interval 5 \
   --log_path "${MONITOR_JSON}" > "${MONITOR_LOG}" 2>&1 &
@@ -67,7 +67,7 @@ echo "[$(date)] Launching distillation training..."
 
 START_TS=$(date +%s)
 
-srun -u python run_distill.py | tee "${TRAIN_LOG}"
+srun -u python run_distill.py "${OUTPUT_DIR}" | tee "${TRAIN_LOG}"
 STATUS=${PIPESTATUS[0]}
 
 END_TS=$(date +%s)

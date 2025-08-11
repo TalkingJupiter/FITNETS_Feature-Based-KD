@@ -15,7 +15,7 @@ def distill_step(student, teacher, inputs, labels, optimizer, criterion_ce, crit
 
     loss_kl = F.kl_div(
         F.log_softmax(s_logits / temperature, dim=1),
-        F.softmax(s_logits / temperature, dim=1),
+        F.softmax(t_logits / temperature, dim=1),  # ✅ FIXED: Use teacher logits
         reduction='batchmean'
     ) * (temperature ** 2)
 
@@ -27,4 +27,4 @@ def distill_step(student, teacher, inputs, labels, optimizer, criterion_ce, crit
     total_loss.backward()
     optimizer.step()
 
-    retrun total_loss.item(), loss_ce.item(), loss_kl.item(), loss_hint.item()
+    return total_loss.item(), loss_ce.item(), loss_kl.item(), loss_hint.item()
