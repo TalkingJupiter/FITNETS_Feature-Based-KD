@@ -5,3 +5,5 @@ matplotlib
 pandas
 pynvml
 psutil
+datasets>=2.19.0
+transformers>=4.43.0

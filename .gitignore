@@ -5,3 +5,6 @@ data/
 *.pt
 *.pth
 .DS_Store
+*.out
+*.err
+machinefile.*
